@@ -4,17 +4,11 @@ import requests
 
 class Page:
 
-    # Default parameters
-    img_selector = '//img[@id="cc-comic"]'
-    next_selector = '//a[@class="cc-next"]'
-    prev_selector = '//a[@class="cc-prev"]'
-
-
-    def __init__(self, url, img_selector=None, next_selector=None,
-        prev_selector=None):
-        self.img_selector = img_selector or self.img_selector
-        self.next_selector = next_selector or self.next_selector
-        self.prev_selector = prev_selector or self.prev_selector
+    def __init__(self, url, img_selector, next_selector,
+        prev_selector):
+        self.img_selector = img_selector
+        self.next_selector = next_selector
+        self.prev_selector = prev_selector
         self.request_page(url)
 
     def prev(self):

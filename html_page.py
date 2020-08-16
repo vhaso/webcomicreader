@@ -46,23 +46,27 @@ class Page:
         fp.seek(0)
         return fp
 
-def queue_pages(current_page, next_queue, prev_queue, block_thread, stop_event):
+def queue_pages(
+    current_page, next_queue, prev_queue,
+    block_thread, dequeue_event, next_ready, prev_ready, stop_event,
+    ):
     with block_thread:
         settings = {
             "img_selector": current_page[0].img_selector,
             "next_selector": current_page[0].next_selector,
             "prev_selector": current_page[0].prev_selector,
         }
-    while not stop_event.wait(1.0):
+    stop = False
+    while not stop:
         with block_thread:
-            if len(next_queue) == 3:
+            if len(next_queue) == next_queue.maxlen:
                 next_url = None
             elif len(next_queue) > 0:
                 next_url = next_queue[-1].next_url
             else:
                 next_url = current_page[0].next_url
 
-            if len(prev_queue) == 3:
+            if len(prev_queue) == prev_queue.maxlen:
                 prev_url = None
             elif prev_queue:
                 prev_url = prev_queue[0].prev_url
@@ -71,13 +75,18 @@ def queue_pages(current_page, next_queue, prev_queue, block_thread, stop_event):
 
         if next_url:
             next_page = Page(next_url, **settings)
-            print(f'Next queue length: {len(next_queue)}')
-            with block_thread:
-                next_queue.append(next_page)
+            if not dequeue_event.wait(0.1):
+                with block_thread:
+                    next_queue.append(next_page)
+                    next_ready.set()
 
         if prev_url:
             prev_page = Page(prev_url, **settings)
-            print(f'Previous queue length: {len(prev_queue)}')
-            with block_thread:
-                prev_queue.appendleft(prev_page)
+            if not dequeue_event.wait(0.1):
+                with block_thread:
+                    prev_queue.appendleft(prev_page)
+                    prev_ready.set()
+
+        dequeue_event.clear()
+        stop = stop_event.wait(3.0)
     return 0

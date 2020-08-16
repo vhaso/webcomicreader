@@ -3,7 +3,6 @@ from lxml import html
 import requests
 
 class Page:
-
     def __init__(self, url, img_selector, next_selector,
         prev_selector):
         self.img_selector = img_selector
@@ -46,3 +45,39 @@ class Page:
         fp.write(img)
         fp.seek(0)
         return fp
+
+def queue_pages(current_page, next_queue, prev_queue, block_thread, stop_event):
+    with block_thread:
+        settings = {
+            "img_selector": current_page[0].img_selector,
+            "next_selector": current_page[0].next_selector,
+            "prev_selector": current_page[0].prev_selector,
+        }
+    while not stop_event.wait(1.0):
+        with block_thread:
+            if len(next_queue) == 3:
+                next_url = None
+            elif len(next_queue) > 0:
+                next_url = next_queue[-1].next_url
+            else:
+                next_url = current_page[0].next_url
+
+            if len(prev_queue) == 3:
+                prev_url = None
+            elif prev_queue:
+                prev_url = prev_queue[0].prev_url
+            else:
+                prev_url = current_page[0].prev_url
+
+        if next_url:
+            next_page = Page(next_url, **settings)
+            print(f'Next queue length: {len(next_queue)}')
+            with block_thread:
+                next_queue.append(next_page)
+
+        if prev_url:
+            prev_page = Page(prev_url, **settings)
+            print(f'Previous queue length: {len(prev_queue)}')
+            with block_thread:
+                prev_queue.appendleft(prev_page)
+    return 0

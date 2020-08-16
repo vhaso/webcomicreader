@@ -1,0 +1,6 @@
+prev_selector://a[@rel="prev"]
+next_selector://a[@rel="next"]
+img_selector://div[@id="comic"]//img
+save_file:example_settings/xkcd_save.csv
+href_format:relative
+src_format:no_schema

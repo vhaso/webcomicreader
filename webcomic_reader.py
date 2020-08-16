@@ -32,9 +32,9 @@ class Application(tk.Frame):
 
         with open(self.save_file, 'r') as f:
             reader = csv.reader(f, delimiter=',')
-            url = next(reader)
+            url = next(reader)[0]
 
-        self.page = Page(url[0], **params)
+        self.page = Page(url, **params)
 
     def __init__(self, master, settings_path):
         super().__init__(master)

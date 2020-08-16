@@ -5,10 +5,12 @@ import requests
 class Page:
 
     def __init__(self, url, img_selector, next_selector,
-        prev_selector):
+        prev_selector, href_format, src_format):
         self.img_selector = img_selector
         self.next_selector = next_selector
         self.prev_selector = prev_selector
+        self.href_format = href_format
+        self.src_format = src_format
         self.request_page(url)
 
     def prev(self):
@@ -24,10 +26,18 @@ class Page:
         self.tree = html.fromstring(page.content)
 
         self.prev_url = self.find_attribute(self.prev_selector, 'href')
-
         self.next_url = self.find_attribute(self.next_selector, 'href')
 
+        if self.href_format == 'relative':
+            split_url = self.this_url.split('/')
+            base_url = f'{split_url[0]}//{split_url[2]}'
+            self.next_url = base_url + self.next_url
+            self.prev_url = base_url + self.prev_url
+
         img_src = self.find_attribute(self.img_selector, 'src')
+        if self.src_format == 'no_schema':
+            img_src = f'https:{img_src}'
+
         self.img = self.request_image(img_src)
         return self.img
 

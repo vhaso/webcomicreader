@@ -28,10 +28,15 @@ class Page:
         self.next_url = self.find_attribute(self.next_selector, 'href')
 
         if self.href_format == 'relative':
+            base_url = '/'.join(self.this_url.split('/')[:-1])
+            self.next_url = base_url + self.next_url
+            self.prev_url = base_url + self.prev_url
+        elif self.href_format == 'absolute':
             split_url = self.this_url.split('/')
             base_url = f'{split_url[0]}//{split_url[2]}'
             self.next_url = base_url + self.next_url
             self.prev_url = base_url + self.prev_url
+
 
         img_src = self.find_attribute(self.img_selector, 'src')
         if self.src_format == 'no_schema':

@@ -70,6 +70,8 @@ def queue_pages(
             "img_selector": current_page[0].img_selector,
             "next_selector": current_page[0].next_selector,
             "prev_selector": current_page[0].prev_selector,
+            "href_format": current_page[0].href_format,
+            "src_format": current_page[0].src_format,
         }
     stop = False
     while not stop:

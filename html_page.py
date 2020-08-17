@@ -105,5 +105,5 @@ def queue_pages(
                     prev_ready.set()
 
         dequeue_event.clear()
-        stop = stop_event.wait(3.0)
+        stop = stop_event.wait(1.0)
     return 0

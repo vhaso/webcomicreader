@@ -128,6 +128,10 @@ class Application(tk.Frame):
             command=self.next_image)
         self.btn_next.pack(side=tk.RIGHT, expand=1)
 
+        self.btn_change = tk.Button(self.btn_frame, text="Change",
+            command=self.change_comic)
+        self.btn_change.pack(side=tk.RIGHT, expand=1)
+
         settings_paths = ['settings/' + file.name for file
             in os.scandir('settings/')]
         self.option_menu = tk.OptionMenu(self.btn_frame, self.settings_path_var,

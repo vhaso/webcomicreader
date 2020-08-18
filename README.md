@@ -1,8 +1,10 @@
 # webcomicreader
 A python 3.8/tk program that loads webcomics via http and bookmarks your page
 
-## Function
+## Functionality
 Webcomics that have been publishing for a few years, have considerable backlogs. For (new) readers it can be tedious to keep track of their progress in a webcomic, because web browser don't allow for easy bookmarking of the last page that was read. The webcomicreader saves/loads the readers progress on closing/opening the program.
+The webcomicreader is run from the command line with a settings_file argument:
+    python webcomicreader.py <settings_file>
 
 ## The settings-file
 Setting up a webcomic requires entering some html-selectors into a settings-file that allow the reader to scrape the web-site for the page-images, and writing an initial save-file. An example for the [XKCD](xkcd.com) webcomic is included. A settings file must contain the following elements:

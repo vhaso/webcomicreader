@@ -2,10 +2,8 @@ import csv
 import keys as ks
 import os
 import sys
-import threading
 import tkinter as tk
-from collections import deque
-from html_page import Page, queue_pages
+from html_page import Page, QueueThread
 from PIL import Image, ImageTk
 
 class Application(tk.Frame):
@@ -38,29 +36,7 @@ class Application(tk.Frame):
 
         self.page = Page(url, **params)
 
-        self.current_page = [self.page,]
-        self.block_thread = threading.Lock()
-        self.next_queue = deque(maxlen=3)
-        self.prev_queue = deque(maxlen=2)
-        self.dequeue_event = threading.Event()
-        self.next_ready = threading.Event()
-        self.prev_ready = threading.Event()
-        self.stop_event = threading.Event()
-        self.queue_thread = threading.Thread(
-            target=queue_pages,
-            name='QueueingThread',
-            daemon=True,
-            kwargs={
-                "current_page": self.current_page,
-                "next_queue": self.next_queue,
-                "prev_queue": self.prev_queue,
-                "block_thread": self.block_thread,
-                "dequeue_event": self.dequeue_event,
-                "next_ready": self.next_ready,
-                "prev_ready": self.prev_ready,
-                "stop_event": self.stop_event,
-            }
-        )
+        self.queue_thread = QueueThread(self.page, next_pages=3, prev_pages=2)
         self.queue_thread.start()
 
     def __init__(self, master, settings_path):
@@ -93,7 +69,7 @@ class Application(tk.Frame):
 
     def destroy(self):
         self.save()
-        self.stop_event.set()
+        self.queue_thread.stop()
         self.queue_thread.join()
 
     def save(self):
@@ -152,40 +128,20 @@ class Application(tk.Frame):
 
     @_clear_queue_after_key_release
     def previous_image(self):
-        if self.prev_ready.wait():
-            self.dequeue_event.set()
-            with self.block_thread:
-                self.next_queue.appendleft(self.page)
-                self.next_ready.set()
-
-                self.page = self.prev_queue.pop()
-                if not len(self.prev_queue):
-                    self.prev_ready.clear()
-                self.current_page[0] = self.page
-
-                self.refresh_image()
-                self.canvas.yview_moveto(0)
+        self.page = self.queue_thread.prev()
+        self.refresh_image()
+        self.canvas.yview_moveto(0)
 
     @_clear_queue_after_key_release
     def next_image(self):
-        if self.next_ready.wait():
-            self.dequeue_event.set()
-            with self.block_thread:
-                self.prev_queue.append(self.page)
-                self.prev_ready.set()
-
-                self.page = self.next_queue.popleft()
-                if not len(self.next_queue):
-                    self.next_ready.clear()
-                self.current_page[0] = self.page
-
-                self.refresh_image()
-                self.canvas.yview_moveto(0)
+        self.page = self.queue_thread.next()
+        self.refresh_image()
+        self.canvas.yview_moveto(0)
 
     @_clear_queue_after_key_release
     def change_comic(self):
         self.save()
-        self.stop_event.set()
+        self.queue_thread.stop()
         self.queue_thread.join()
         settings_path = self.settings_path_var.get()
         self.init_page(settings_path)

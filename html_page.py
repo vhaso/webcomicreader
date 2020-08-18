@@ -1,6 +1,8 @@
+from collections import deque
 from io import BytesIO
 from lxml import html
 import requests
+import threading
 
 class Page:
     def __init__(self, url, img_selector, next_selector,
@@ -67,42 +69,92 @@ class Page:
         fp.seek(0)
         return fp
 
-def queue_pages(
-    current_page, next_queue, prev_queue,
-    block_thread, dequeue_event, next_ready, prev_ready, stop_event,
-    ):
-    stop = False
-    while not stop:
-        with block_thread:
-            if len(next_queue) == next_queue.maxlen:
-                page = None
-            elif len(next_queue) > 0:
-                page = next_queue[-1]
-            else:
-                page = current_page[0]
+class QueueThread(threading.Thread):
+    def __init__(self, initial_page, next_pages, prev_pages, **kwargs):
+        self.current_page = initial_page
+        self.next_queue = deque(maxlen=next_pages)
+        self.prev_queue = deque(maxlen=prev_pages)
 
-        if page:
-            next_page = page.next()
-            if not dequeue_event.wait(0.1):
-                with block_thread:
-                    next_queue.append(next_page)
-                    next_ready.set()
+        self.block_thread = threading.Lock()
+        self.next_ready = threading.Event()
+        self.prev_ready = threading.Event()
+        self.stop_event = threading.Event()
 
-        with block_thread:
-            if len(prev_queue) == prev_queue.maxlen:
-                page = None
-            elif prev_queue:
-                page = prev_queue[0]
-            else:
-                page = current_page[0]
+        super().__init__(name="QueueThread", daemon=True, kwargs=kwargs)
 
-        if page:
-            prev_page = page.prev()
-            if not dequeue_event.wait(0.1):
-                with block_thread:
-                    prev_queue.appendleft(prev_page)
-                    prev_ready.set()
+    def stop(self):
+        self.stop_event.set()
 
-        dequeue_event.clear()
-        stop = stop_event.wait(1.0)
-    return 0
+    def next(self):
+        self.next_ready.wait()
+        with self.block_thread:
+            self.prev_queue.append(self.current_page)
+            self.current_page = self.next_queue.popleft()
+            if not self.next_queue:
+                self.next_ready.clear()
+            return self.current_page
+
+    def prev(self):
+        self.prev_ready.wait()
+        with self.block_thread:
+            self.next_queue.appendleft(self.current_page)
+            self.current_page = self.prev_queue.pop()
+            if not self.prev_queue:
+                self.prev_ready.clear()
+            return self.current_page
+
+    def can_append_next(self, page):
+        if len(self.next_queue) == self.next_queue.maxlen:
+            return False
+        elif not self.next_queue and self.current_page.this_url == page.prev_url:
+            return True
+        elif self.next_queue and self.next_queue[-1].this_url == page.prev_url:
+            return True
+        else:
+            return False
+
+    def can_append_prev(self, page):
+        if len(self.prev_queue) == self.prev_queue.maxlen:
+            return False
+        elif not self.prev_queue and self.current_page.this_url == page.next_url:
+            return True
+        elif self.prev_queue and self.prev_queue[0].this_url == page.next_url:
+            return True
+        else:
+            return False
+
+    def run(self, *args, **kwargs):
+        stop = False
+        while not stop:
+            with self.block_thread:
+                if len(self.next_queue) == self.next_queue.maxlen:
+                    page = None
+                elif self.next_queue:
+                    page = self.next_queue[-1]
+                else:
+                    page = self.current_page
+
+            if page:
+                next_page = page.next()
+                with self.block_thread:
+                    if self.can_append_next(next_page):
+                        self.next_queue.append(next_page)
+                        self.next_ready.set()
+
+            with self.block_thread:
+                if len(self.prev_queue) == self.prev_queue.maxlen:
+                    page = None
+                elif self.prev_queue:
+                    page = self.prev_queue[0]
+                else:
+                    page = self.current_page
+
+            if page:
+                prev_page = page.prev()
+                with self.block_thread:
+                    if self.can_append_prev(prev_page):
+                        self.prev_queue.appendleft(prev_page)
+                        self.prev_ready.set()
+
+            stop = self.stop_event.wait(1.0)
+        return 0

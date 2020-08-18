@@ -10,13 +10,20 @@ class Page:
         self.prev_selector = prev_selector
         self.href_format = href_format
         self.src_format = src_format
+        self.kwargs = {
+            'img_selector': img_selector,
+            'next_selector': next_selector,
+            'prev_selector': prev_selector,
+            'href_format': href_format,
+            'src_format': src_format,
+        }
         self.request_page(url)
 
     def prev(self):
-        return self.request_page(self.prev_url)
+        return Page(self.prev_url, **self.kwargs)
 
     def next(self):
-        return self.request_page(self.next_url)
+        return Page(self.next_url, **self.kwargs)
 
     def request_page(self, url):
         self.this_url = url
@@ -36,7 +43,6 @@ class Page:
             base_url = f'{split_url[0]}//{split_url[2]}'
             self.next_url = base_url + self.next_url
             self.prev_url = base_url + self.prev_url
-
 
         img_src = self.find_attribute(self.img_selector, 'src')
         if self.src_format == 'no_schema':
@@ -65,40 +71,33 @@ def queue_pages(
     current_page, next_queue, prev_queue,
     block_thread, dequeue_event, next_ready, prev_ready, stop_event,
     ):
-    with block_thread:
-        settings = {
-            "img_selector": current_page[0].img_selector,
-            "next_selector": current_page[0].next_selector,
-            "prev_selector": current_page[0].prev_selector,
-            "href_format": current_page[0].href_format,
-            "src_format": current_page[0].src_format,
-        }
     stop = False
     while not stop:
         with block_thread:
             if len(next_queue) == next_queue.maxlen:
-                next_url = None
+                page = None
             elif len(next_queue) > 0:
-                next_url = next_queue[-1].next_url
+                page = next_queue[-1]
             else:
-                next_url = current_page[0].next_url
+                page = current_page[0]
 
-            if len(prev_queue) == prev_queue.maxlen:
-                prev_url = None
-            elif prev_queue:
-                prev_url = prev_queue[0].prev_url
-            else:
-                prev_url = current_page[0].prev_url
-
-        if next_url:
-            next_page = Page(next_url, **settings)
+        if page:
+            next_page = page.next()
             if not dequeue_event.wait(0.1):
                 with block_thread:
                     next_queue.append(next_page)
                     next_ready.set()
 
-        if prev_url:
-            prev_page = Page(prev_url, **settings)
+        with block_thread:
+            if len(prev_queue) == prev_queue.maxlen:
+                page = None
+            elif prev_queue:
+                page = prev_queue[0]
+            else:
+                page = current_page[0]
+
+        if page:
+            prev_page = page.prev()
             if not dequeue_event.wait(0.1):
                 with block_thread:
                     prev_queue.appendleft(prev_page)

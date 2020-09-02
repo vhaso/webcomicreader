@@ -86,22 +86,26 @@ class QueueThread(threading.Thread):
         self.stop_event.set()
 
     def next(self):
-        self.next_ready.wait()
-        with self.block_thread:
-            self.prev_queue.append(self.current_page)
-            self.current_page = self.next_queue.popleft()
-            if not self.next_queue:
-                self.next_ready.clear()
-            return self.current_page
+        if self.current_page.next_url:
+            self.next_ready.wait()
+            with self.block_thread:
+                self.prev_queue.append(self.current_page)
+                self.prev_ready.set()
+                self.current_page = self.next_queue.popleft()
+                if not self.next_queue:
+                    self.next_ready.clear()
+        return self.current_page
 
     def prev(self):
-        self.prev_ready.wait()
-        with self.block_thread:
-            self.next_queue.appendleft(self.current_page)
-            self.current_page = self.prev_queue.pop()
-            if not self.prev_queue:
-                self.prev_ready.clear()
-            return self.current_page
+        if self.current_page.prev_url:
+            self.prev_ready.wait()
+            with self.block_thread:
+                self.next_queue.appendleft(self.current_page)
+                self.next_ready.set()
+                self.current_page = self.prev_queue.pop()
+                if not self.prev_queue:
+                    self.prev_ready.clear()
+        return self.current_page
 
     def can_append_next(self, page):
         if len(self.next_queue) == self.next_queue.maxlen:
@@ -134,7 +138,7 @@ class QueueThread(threading.Thread):
                 else:
                     page = self.current_page
 
-            if page:
+            if page and page.next_url:
                 next_page = page.next()
                 with self.block_thread:
                     if self.can_append_next(next_page):
@@ -149,7 +153,7 @@ class QueueThread(threading.Thread):
                 else:
                     page = self.current_page
 
-            if page:
+            if page and page.prev_url:
                 prev_page = page.prev()
                 with self.block_thread:
                     if self.can_append_prev(prev_page):

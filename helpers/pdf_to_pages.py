@@ -11,7 +11,7 @@ def iter_pages(reader):
 if __name__ == '__main__':
     pdf_path = sys.argv[1]
     destination = sys.argv[2]
-    if destination in os.listdir():
+    if os.path.exists(destination):
         shutil.rmtree(destination)
     os.mkdir(destination)
 

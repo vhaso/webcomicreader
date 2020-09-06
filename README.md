@@ -8,6 +8,7 @@ The webcomicreader is run from the command line with a settings_file argument:
 
 ## The settings-file
 Setting up a webcomic requires entering some html-selectors into a settings-file that allow the reader to scrape the web-site for the page-images, and writing an initial save-file. An example for the [XKCD](xkcd.com) webcomic is included. A settings file must contain the following elements:
+* **page_type** is the type of the page for webcomics that are loaded via http us `online`
 * **next_selector/prev_selector** are the selectors for the anchor elements with links to the next_previous page
 * **the img_selector** is the selector for the page-image img element
 * **save_file** is the relative path from the program's directory to the save_file

@@ -48,7 +48,7 @@ class LocalPage:
         return fp
 
 
-class Page:
+class OnlinePage:
     def __init__(self, url, img_selector, next_selector,
         prev_selector, href_format, src_format):
         self.img_selector = img_selector

@@ -3,7 +3,7 @@ import keys as ks
 import os
 import sys
 import tkinter as tk
-from html_page import LocalPage, Page, QueueThread
+from page_api import LocalPage, OnlinePage, QueueThread
 from PIL import Image, ImageTk
 
 class Application(tk.Frame):
@@ -37,7 +37,7 @@ class Application(tk.Frame):
         page_type = params.pop('page_type')
 
         if page_type == 'online':
-            self.page = Page(bookmark, **params)
+            self.page = OnlinePage(bookmark, **params)
         elif page_type == 'local':
             self.page = LocalPage(bookmark, **params)
 

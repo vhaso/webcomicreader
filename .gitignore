@@ -3,3 +3,4 @@ page_saves/
 settings/
 run_reader.*
 *.ico
+venv/

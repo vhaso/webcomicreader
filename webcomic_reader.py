@@ -172,7 +172,8 @@ if __name__ == '__main__':
     root = tk.Tk()
     root.configure(background='#121212')
     root.attributes("-fullscreen", True)
-    settings_path = sys.argv[1] if len(sys.argv) > 1 else ''
+    assert len(sys.argv) >= 2, 'Missing settings_path argument'
+    settings_path = sys.argv[1]
     app = Application(root, settings_path)
 
     app.mainloop()

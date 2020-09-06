@@ -3,7 +3,7 @@ import keys as ks
 import os
 import sys
 import tkinter as tk
-from html_page import Page, QueueThread
+from html_page import LocalPage, Page, QueueThread
 from PIL import Image, ImageTk
 
 class Application(tk.Frame):
@@ -32,9 +32,14 @@ class Application(tk.Frame):
 
         with open(self.save_file, 'r') as f:
             reader = csv.reader(f, delimiter=',')
-            url = next(reader)[0]
+            bookmark = next(reader)[0]
 
-        self.page = Page(url, **params)
+        page_type = params.pop('page_type')
+
+        if page_type == 'online':
+            self.page = Page(bookmark, **params)
+        elif page_type == 'local':
+            self.page = LocalPage(bookmark, **params)
 
         self.queue_thread = QueueThread(self.page, next_pages=3, prev_pages=2)
         self.queue_thread.start()
@@ -75,7 +80,7 @@ class Application(tk.Frame):
     def save(self):
         with open(self.save_file, 'w') as f:
             writer = csv.writer(f, delimiter=',')
-            writer.writerow([self.page.this_url])
+            writer.writerow([self.page.save_string])
 
     def create_widgets(self):
         image = self.load_image()
@@ -129,18 +134,17 @@ class Application(tk.Frame):
         self.canvas.config(scrollregion=(0,0,0,image.height()))
         self.canvas.create_image(0, 0, anchor=tk.NW, image=image)
         self.canvas.image = image
+        self.canvas.yview_moveto(0)
 
     @_clear_queue_after_key_release
     def previous_image(self):
         self.page = self.queue_thread.prev()
         self.refresh_image()
-        self.canvas.yview_moveto(0)
 
     @_clear_queue_after_key_release
     def next_image(self):
         self.page = self.queue_thread.next()
         self.refresh_image()
-        self.canvas.yview_moveto(0)
 
     @_clear_queue_after_key_release
     def change_comic(self):

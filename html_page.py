@@ -1,8 +1,52 @@
 from collections import deque
 from io import BytesIO
 from lxml import html
+import os
 import requests
 import threading
+
+
+class LocalPage:
+    def __init__(self, page_num, folder):
+        self.folder = folder
+        self.page_num = int(page_num)
+        self.path = self.give_path(self.page_num)
+        self.img = self.load_img()
+
+    @property
+    def save_string(self):
+        return self.page_num
+
+    def give_path(self, page_num):
+        return os.path.join(self.folder, f'{page_num}.png')
+
+    @property
+    def has_prev(self):
+        return os.path.exists(self.give_path(self.page_num - 1))
+
+    @property
+    def has_next(self):
+        return os.path.exists(self.give_path(self.page_num + 1))
+
+    def is_prev(self, page):
+        return self.page_num == page.page_num + 1
+
+    def is_next(self, page):
+        return self.page_num == page.page_num - 1
+
+    def prev(self):
+        return self.__class__(self.page_num - 1, self.folder)
+
+    def next(self):
+        return self.__class__(self.page_num + 1, self.folder)
+
+    def load_img(self):
+        fp = BytesIO()
+        with open(self.path, 'rb') as f:
+            fp.write(f.read())
+        fp.seek(0)
+        return fp
+
 
 class Page:
     def __init__(self, url, img_selector, next_selector,
@@ -22,6 +66,10 @@ class Page:
         self.request_page(url)
 
     @property
+    def save_string(self):
+        return self.this_url
+
+    @property
     def has_prev(self):
         return bool(self.prev_url)
 
@@ -29,11 +77,17 @@ class Page:
     def has_next(self):
         return bool(self.next_url)
 
+    def is_prev(self, page):
+        return self.this_url == page.next_url
+
+    def is_next(self, page):
+        return self.this_url == page.prev_url
+
     def prev(self):
-        return Page(self.prev_url, **self.kwargs)
+        return self.__class__(self.prev_url, **self.kwargs)
 
     def next(self):
-        return Page(self.next_url, **self.kwargs)
+        return self.__class__(self.next_url, **self.kwargs)
 
     def request_page(self, url):
         self.this_url = url
@@ -77,6 +131,7 @@ class Page:
         fp.seek(0)
         return fp
 
+
 class QueueThread(threading.Thread):
     def __init__(self, initial_page, next_pages, prev_pages, **kwargs):
         self.current_page = initial_page
@@ -94,7 +149,7 @@ class QueueThread(threading.Thread):
         self.stop_event.set()
 
     def next(self):
-        if self.current_page.next_url:
+        if self.current_page.has_next:
             self.next_ready.wait()
             with self.block_thread:
                 self.prev_queue.append(self.current_page)
@@ -105,7 +160,7 @@ class QueueThread(threading.Thread):
         return self.current_page
 
     def prev(self):
-        if self.current_page.prev_url:
+        if self.current_page.has_prev:
             self.prev_ready.wait()
             with self.block_thread:
                 self.next_queue.appendleft(self.current_page)
@@ -118,9 +173,9 @@ class QueueThread(threading.Thread):
     def can_append_next(self, page):
         if len(self.next_queue) == self.next_queue.maxlen:
             return False
-        elif not self.next_queue and self.current_page.this_url == page.prev_url:
+        elif not self.next_queue and self.current_page.is_next(page):
             return True
-        elif self.next_queue and self.next_queue[-1].this_url == page.prev_url:
+        elif self.next_queue and self.next_queue[-1].is_next(page):
             return True
         else:
             return False
@@ -128,9 +183,9 @@ class QueueThread(threading.Thread):
     def can_append_prev(self, page):
         if len(self.prev_queue) == self.prev_queue.maxlen:
             return False
-        elif not self.prev_queue and self.current_page.this_url == page.next_url:
+        elif not self.prev_queue and self.current_page.is_prev(page):
             return True
-        elif self.prev_queue and self.prev_queue[0].this_url == page.next_url:
+        elif self.prev_queue and self.prev_queue[0].is_prev(page):
             return True
         else:
             return False

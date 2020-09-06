@@ -1,3 +1,4 @@
+page_type:online
 prev_selector://a[@rel="prev"]
 next_selector://a[@rel="next"]
 img_selector://div[@id="comic"]//img

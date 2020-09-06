@@ -21,6 +21,14 @@ class Page:
         }
         self.request_page(url)
 
+    @property
+    def has_prev(self):
+        return bool(self.prev_url)
+
+    @property
+    def has_next(self):
+        return bool(self.next_url)
+
     def prev(self):
         return Page(self.prev_url, **self.kwargs)
 
@@ -138,7 +146,7 @@ class QueueThread(threading.Thread):
                 else:
                     page = self.current_page
 
-            if page and page.next_url:
+            if page and page.has_next:
                 next_page = page.next()
                 with self.block_thread:
                     if self.can_append_next(next_page):
@@ -153,7 +161,7 @@ class QueueThread(threading.Thread):
                 else:
                     page = self.current_page
 
-            if page and page.prev_url:
+            if page and page.has_prev:
                 prev_page = page.prev()
                 with self.block_thread:
                     if self.can_append_prev(prev_page):

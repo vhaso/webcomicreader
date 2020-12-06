@@ -6,20 +6,20 @@ import tkinter as tk
 from page_api import LocalPage, OnlinePage, QueueThread
 from PIL import Image, ImageTk
 
+def _clear_queue_after_key_release(function):
+    def event(app, *args, **kwargs):
+        result = function(app, *args, **kwargs)
+
+        #Remove queued KeyRelease events
+        app.master.bind("<KeyRelease>", lambda event: None)
+        app.master.update()
+        app.master.bind("<KeyRelease>", app.key_release_bindings)
+
+        return result
+    return event
+
 class Application(tk.Frame):
     img_height = 700
-
-    def _clear_queue_after_key_release(function):
-        def event(self, *args, **kwargs):
-            result = function(self, *args, **kwargs)
-
-            #Remove queued KeyRelease events
-            self.master.bind("<KeyRelease>", lambda event: None)
-            self.master.update()
-            self.master.bind("<KeyRelease>", self.key_release_bindings)
-
-            return result
-        return event
 
     def init_page(self, settings_path):
         params = {}
@@ -78,7 +78,7 @@ class Application(tk.Frame):
         self.queue_thread.join()
 
     def save(self):
-        with open(self.save_file, 'w') as f:
+        with open(self.save_file, 'w', newline='') as f:
             writer = csv.writer(f, delimiter=',')
             writer.writerow([self.page.save_string])
 

@@ -4,16 +4,11 @@ import shutil
 import sys
 from PIL import Image
 
-def iter_pages(reader):
-    for page_num in range(reader.numPages):
-        yield reader.getPage(page_num)
-
 if __name__ == '__main__':
     pdf_path = sys.argv[1]
     destination = sys.argv[2]
-    if os.path.exists(destination):
-        shutil.rmtree(destination)
-    os.mkdir(destination)
+    if not os.path.exists(destination):
+        os.mkdir(destination)
 
     doc = fitz.open(pdf_path)
     for i in range(len(doc)):

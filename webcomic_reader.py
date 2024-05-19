@@ -48,6 +48,7 @@ class Application(tk.Frame):
         super().__init__(master)
         self.master = master
         self.pack()
+        self.update()
 
         self.img_height = master.winfo_screenheight() - 32
         self.max_width = master.winfo_screenwidth()

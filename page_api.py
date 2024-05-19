@@ -7,7 +7,7 @@ import threading
 
 
 class LocalPage:
-    def __init__(self, page_num, folder):
+    def __init__(self, page_num, folder, **params):
         self.folder = folder
         self.page_num = int(page_num)
         self.path = self.give_path(self.page_num)
@@ -50,7 +50,7 @@ class LocalPage:
 
 class OnlinePage:
     def __init__(self, url, img_selector, next_selector,
-        prev_selector, href_format, src_format):
+        prev_selector, href_format, src_format, **params):
         self.img_selector = img_selector
         self.next_selector = next_selector
         self.prev_selector = prev_selector

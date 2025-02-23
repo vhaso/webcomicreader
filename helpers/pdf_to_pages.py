@@ -13,14 +13,14 @@ if __name__ == '__main__':
     doc = fitz.open(pdf_path)
     for i in range(len(doc)):
         path = os.path.join(destination, f"{i}.png")
-        for img in doc.getPageImageList(i):
+        for img in doc.get_page_images(i):
             xref = img[0]
             pix = fitz.Pixmap(doc, xref)
             if pix.n < 5:       # this is GRAY or RGB
-                pix.writePNG(path)
+                pix.save(path)
             else:               # CMYK: convert to RGB first
                 pix1 = fitz.Pixmap(fitz.csRGB, pix)
-                pix1.writePNG(path)
+                pix1.save(path)
                 pix1 = None
             pix = None
 

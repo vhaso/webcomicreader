@@ -125,7 +125,7 @@ class Application(tk.Frame):
         while load.size[0] > self.max_width:
             load = load.resize(
                 (int(load.size[0]/2), int(load.size[1]/2)),
-                Image.ANTIALIAS
+                Image.LANCZOS
             )
         return ImageTk.PhotoImage(load)
 
